@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Custom Scrollbar for the history section */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #d1d5db;
+        }
+        
+        /* Modal Animation Utilities */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 300ms, transform 300ms;
+        }
+        .modal-exit {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 300ms, transform 300ms;
+        }
+        
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-neutral-900 to-black font-sans text-gray-900 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
+    <!-- Main Layout Container -->
+    <div class="w-full max-w-5xl flex flex-col md:flex-row gap-8 md:gap-12 items-center md:items-stretch relative z-10">
+        
+        <!-- Left Side: Timer & Controls -->
+        <div class="w-full md:w-1/2 flex flex-col items-center justify-center text-white p-4">
+            
+            <!-- Title -->
+            <div class="flex items-center justify-center gap-3 mb-10">
+                <i data-lucide="zap" class="w-8 h-8 text-amber-400 fill-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]"></i>
+                <h1 class="text-4xl font-black tracking-tight italic uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Power Tracker</h1>
+            </div>
+
+            <!-- Status Pill -->
+            <div class="mb-4">
+                <span id="status-pill" class="inline-block px-5 py-2 rounded-full bg-white/5 backdrop-blur-sm text-amber-400 font-bold text-sm mb-4 border border-amber-400/20 uppercase tracking-widest shadow-sm">
+                    Ready to Start
+                </span>
+            </div>
+
+            <!-- Timer Display -->
+            <div id="timer-display" class="text-8xl md:text-9xl font-black tracking-tighter mb-8 font-mono drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                00:00
+            </div>
+
+            <!-- Reps Input Container (Hidden by default) -->
+            <div id="reps-container" class="w-full max-w-sm mb-6 hidden transition-all duration-300 origin-bottom">
+                <label for="reps-input" class="block text-amber-400/90 text-xs font-bold uppercase tracking-widest mb-2 text-center">
+                    Reps Completed (Optional)
+                </label>
+                <div class="relative flex items-center justify-center">
+                    <i data-lucide="target" class="absolute left-4 w-5 h-5 text-gray-400"></i>
+                    <input type="number" id="reps-input" min="0" placeholder="e.g. 10" class="w-full pl-12 pr-4 py-3 rounded-2xl border-none text-center text-xl font-black text-white bg-white/10 shadow-inner focus:ring-2 focus:ring-amber-400/50 outline-none transition-all placeholder:text-gray-500 placeholder:font-normal backdrop-blur-md">
+                </div>
+            </div>
+
+            <!-- Primary Action Button -->
+            <button id="action-btn" class="w-full max-w-sm py-5 rounded-2xl text-xl font-black uppercase tracking-wider transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.3)] border border-amber-400/50">
+                <!-- Icon and Text injected via JS -->
+            </button>
+
+            <!-- Secondary Actions: Finish & Reset -->
+            <div class="flex items-center justify-center gap-8 mt-8">
+                <button id="finish-btn" class="hidden items-center justify-center gap-2 text-amber-400 hover:text-amber-300 font-semibold transition-colors uppercase text-sm tracking-wider">
+                    <i data-lucide="flag" class="w-4 h-4"></i>
+                    Finish Workout
+                </button>
+                <button id="reset-btn" class="flex items-center justify-center gap-2 text-white/50 hover:text-white font-semibold transition-colors uppercase text-sm tracking-wider">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats / History Section (Right Side Window) -->
+        <div class="bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl p-6 w-full md:w-1/2 flex flex-col h-[500px] md:h-[580px] relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2"></div>
+            <div class="flex items-center gap-2 mb-4 text-white shrink-0">
+                <i data-lucide="activity" class="w-5 h-5 text-amber-500"></i>
+                <h2 class="text-lg font-black uppercase tracking-wide">Session Stats</h2>
+            </div>
+            
+            <!-- History List -->
+            <div id="history-container" class="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
+                <!-- History items injected via JS -->
+            </div>
+
+            <!-- Live Averages Section -->
+            <div id="averages-container" class="hidden mt-2 pt-4 border-t border-neutral-800 shrink-0">
+                <h3 class="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 text-center">Live Averages</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-center">
+                        <span class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Avg Work</span>
+                        <span id="avg-work" class="font-mono font-black text-amber-500 text-sm">--:--</span>
+                    </div>
+                    <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-center">
+                        <span class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Avg Rest</span>
+                        <span id="avg-rest" class="font-mono font-black text-neutral-300 text-sm">--:--</span>
+                    </div>
+                    <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-center">
+                        <span class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Total Reps</span>
+                        <span id="total-reps" class="font-black text-white text-sm">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals Overlay Background -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+    <!-- Custom Reset Modal -->
+    <div id="reset-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none p-4">
+        <div id="reset-modal-content" class="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl modal-enter pointer-events-auto">
+            <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-2xl font-black uppercase text-white mb-2 text-center">Reset Session?</h3>
+            <p class="text-neutral-400 mb-8 font-medium text-center text-sm">All your current sets, times, and reps will be permanently deleted.</p>
+            <div class="flex gap-3">
+                <button id="cancel-reset-btn" class="flex-1 py-3 rounded-xl font-bold text-white bg-neutral-800 hover:bg-neutral-700 transition-colors uppercase tracking-wide text-sm border border-neutral-700">Cancel</button>
+                <button id="confirm-reset-btn" class="flex-1 py-3 rounded-xl font-bold text-black bg-red-500 hover:bg-red-400 transition-colors uppercase tracking-wide text-sm">Yes, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workout Summary Modal -->
+    <div id="summary-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none p-4">
+        <div id="summary-modal-content" class="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 max-w-md w-full shadow-2xl modal-enter pointer-events-auto border-t-8 border-t-amber-500">
+            <div class="flex items-center justify-center gap-3 mb-2">
+                <i data-lucide="award" class="w-8 h-8 text-amber-500"></i>
+                <h3 class="text-3xl font-black uppercase text-white italic">Workout Complete</h3>
+            </div>
+            <p class="text-neutral-400 mb-6 font-medium text-center text-sm">Great job! Here is your performance summary.</p>
+            
+            <div class="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 mb-6 space-y-4">
+                <div class="flex justify-between items-center pb-3 border-b border-neutral-800">
+                    <span class="text-neutral-500 font-bold uppercase text-xs tracking-wider">Total Sets</span>
+                    <span id="summary-sets" class="font-black text-white text-xl">0</span>
+                </div>
+                <div class="flex justify-between items-center pb-3 border-b border-neutral-800">
+                    <span class="text-neutral-500 font-bold uppercase text-xs tracking-wider">Total Reps</span>
+                    <span id="summary-reps" class="font-black text-white text-xl">0</span>
+                </div>
+                <div class="flex justify-between items-center pb-3 border-b border-neutral-800">
+                    <span class="text-neutral-500 font-bold uppercase text-xs tracking-wider">Avg Work/Set</span>
+                    <span id="summary-avg-work" class="font-mono font-black text-amber-500 text-lg">00:00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-neutral-500 font-bold uppercase text-xs tracking-wider">Avg Rest/Set</span>
+                    <span id="summary-avg-rest" class="font-mono font-black text-neutral-300 text-lg">00:00</span>
+                </div>
+            </div>
+
+            <button id="close-summary-btn" class="w-full py-4 rounded-xl font-black text-black bg-amber-500 hover:bg-amber-400 transition-colors uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                Start New Session
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let phase = 'idle'; // 'idle', 'working', 'resting', 'finished'
+        let currentSet = 1;
+        let timeElapsed = 0;
+        let historyList = [];
+        let timerInterval = null;
+
+        // --- DOM Elements ---
+        const timerDisplay = document.getElementById('timer-display');
+        const statusPill = document.getElementById('status-pill');
+        const actionBtn = document.getElementById('action-btn');
+        const historyContainer = document.getElementById('history-container');
+        const resetBtn = document.getElementById('reset-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        
+        const repsContainer = document.getElementById('reps-container');
+        const repsInput = document.getElementById('reps-input');
+        
+        const averagesContainer = document.getElementById('averages-container');
+        const avgWorkEl = document.getElementById('avg-work');
+        const avgRestEl = document.getElementById('avg-rest');
+        const totalRepsEl = document.getElementById('total-reps');
+
+        // Modals Elements
+        const modalOverlay = document.getElementById('modal-overlay');
+        const resetModal = document.getElementById('reset-modal');
+        const resetModalContent = document.getElementById('reset-modal-content');
+        const confirmResetBtn = document.getElementById('confirm-reset-btn');
+        const cancelResetBtn = document.getElementById('cancel-reset-btn');
+
+        const summaryModal = document.getElementById('summary-modal');
+        const summaryModalContent = document.getElementById('summary-modal-content');
+        const closeSummaryBtn = document.getElementById('close-summary-btn');
+
+        // --- Utility Functions ---
+        function formatTime(totalSeconds) {
+            if (totalSeconds === null || totalSeconds === undefined) return "--:--";
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // --- Calculation Functions ---
+        function calculateStats() {
+            if (historyList.length === 0) return { avgWork: 0, avgRest: 0, totalReps: 0, setsWithRest: 0 };
+            
+            let totalWorkTime = 0;
+            let totalRestTime = 0;
+            let setsWithRest = 0;
+            let totalRepsCount = 0;
+
+            historyList.forEach(record => {
+                totalWorkTime += record.work;
+                if (record.rest !== null) {
+                    totalRestTime += record.rest;
+                    setsWithRest++;
+                }
+                if (record.reps !== null) {
+                    totalRepsCount += record.reps;
+                }
+            });
+
+            return {
+                avgWork: Math.round(totalWorkTime / historyList.length),
+                avgRest: setsWithRest > 0 ? Math.round(totalRestTime / setsWithRest) : 0,
+                totalReps: totalRepsCount,
+                setsWithRest: setsWithRest
+            };
+        }
+
+        // --- UI Updaters ---
+        function updateTimerDisplay() {
+            timerDisplay.textContent = formatTime(timeElapsed);
+        }
+
+        function updateHistory() {
+            if (historyList.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="text-center py-10 text-neutral-500 italic font-medium">
+                        Complete a set to see your stats here.
+                    </div>
+                `;
+                averagesContainer.classList.add('hidden');
+            } else {
+                historyContainer.innerHTML = historyList.map(record => `
+                    <div class="bg-neutral-950 rounded-xl p-3 shadow-sm border border-neutral-800 flex items-center justify-between transition-all hover:border-amber-500/50 hover:shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 font-black shrink-0 shadow-inner">
+                                ${record.set}
+                            </div>
+                            <div class="flex flex-col text-left hidden sm:flex">
+                                <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Set</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-4 sm:gap-6 text-right">
+                            <div class="flex flex-col items-end w-12 sm:w-16">
+                                <span class="text-[10px] sm:text-xs text-neutral-500 uppercase font-bold tracking-wider flex items-center gap-1">
+                                    <i data-lucide="flame" class="w-3 h-3 text-amber-500"></i> Work
+                                </span>
+                                <span class="font-mono font-bold text-white text-sm">
+                                    ${formatTime(record.work)}
+                                </span>
+                            </div>
+                            <div class="flex flex-col items-end w-12 sm:w-16 border-l border-neutral-800 pl-4 sm:pl-6">
+                                <span class="text-[10px] sm:text-xs text-neutral-500 uppercase font-bold tracking-wider flex items-center gap-1">
+                                    <i data-lucide="timer" class="w-3 h-3 text-neutral-400"></i> Rest
+                                </span>
+                                <span class="font-mono font-bold text-neutral-300 text-sm">
+                                    ${record.rest !== null ? formatTime(record.rest) : '--:--'}
+                                </span>
+                            </div>
+                            <div class="flex flex-col items-end w-10 sm:w-12 border-l border-neutral-800 pl-4 sm:pl-6">
+                                <span class="text-[10px] sm:text-xs text-neutral-500 uppercase font-bold tracking-wider flex items-center gap-1">
+                                    <i data-lucide="target" class="w-3 h-3 text-amber-500/70"></i> Reps
+                                </span>
+                                <span class="font-black text-white text-sm">
+                                    ${record.reps !== null ? record.reps : '-'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Update Averages UI
+                const stats = calculateStats();
+                avgWorkEl.textContent = formatTime(stats.avgWork);
+                avgRestEl.textContent = stats.setsWithRest > 0 ? formatTime(stats.avgRest) : '--:--';
+                totalRepsEl.textContent = stats.totalReps > 0 ? stats.totalReps : '-';
+                averagesContainer.classList.remove('hidden');
+            }
+        }
+
+        function updateUI() {
+            updateTimerDisplay();
+
+            // Update Status Pill
+            if (phase === 'idle') {
+                statusPill.textContent = "Ready to Start";
+                finishBtn.style.display = 'none'; // Use style to bypass flex parent weirdness
+                repsContainer.classList.add('hidden');
+            } else if (phase === 'working') {
+                statusPill.textContent = `Active: Set ${currentSet}`;
+                finishBtn.style.display = 'flex';
+                repsContainer.classList.remove('hidden');
+            } else if (phase === 'resting') {
+                statusPill.textContent = `Resting (Next: Set ${currentSet + 1})`;
+                finishBtn.style.display = 'flex';
+                repsContainer.classList.add('hidden');
+            }
+
+            // Update Action Button Text, Icons, and Classes
+            const baseBtnClasses = "w-full max-w-sm py-5 rounded-2xl text-xl font-black uppercase tracking-wider transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3";
+            
+            if (phase === 'working') {
+                actionBtn.className = `${baseBtnClasses} bg-white text-black hover:bg-gray-200 shadow-[0_0_30px_rgba(255,255,255,0.2)]`;
+                actionBtn.innerHTML = `<i data-lucide="pause" class="w-7 h-7 fill-black text-black"></i> Finish & Rest`;
+            } else {
+                actionBtn.className = `${baseBtnClasses} bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.3)] border border-amber-400/50`;
+                if (phase === 'idle') {
+                    actionBtn.innerHTML = `<i data-lucide="play" class="w-7 h-7 fill-black text-black"></i> Start Set 1`;
+                } else if (phase === 'resting') {
+                    actionBtn.innerHTML = `<i data-lucide="flame" class="w-7 h-7 fill-black text-black"></i> Start Set ${currentSet + 1}`;
+                }
+            }
+
+            updateHistory();
+            lucide.createIcons();
+        }
+
+        // --- Core Logic ---
+        function handleAction() {
+            if (phase === 'idle') {
+                // Start first set
+                phase = 'working';
+                timeElapsed = 0;
+            } else if (phase === 'working') {
+                // Finish set, capture reps, start rest
+                const repsValue = repsInput.value.trim();
+                const reps = repsValue !== '' ? parseInt(repsValue, 10) : null;
+                repsInput.value = ''; // clear input for next time
+
+                historyList.unshift({ set: currentSet, work: timeElapsed, rest: null, reps: reps });
+                phase = 'resting';
+                timeElapsed = 0;
+            } else if (phase === 'resting') {
+                // Finish rest, start next set
+                if (historyList.length > 0) {
+                    historyList[0].rest = timeElapsed;
+                }
+                currentSet++;
+                phase = 'working';
+                timeElapsed = 0;
+            }
+            
+            manageTimer();
+            updateUI();
+        }
+
+        function manageTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            if (phase === 'working' || phase === 'resting') {
+                timerInterval = setInterval(() => {
+                    timeElapsed++;
+                    updateTimerDisplay(); 
+                }, 1000);
+            }
+        }
+
+        // --- Modal & Reset/Finish Handlers ---
+        
+        function openModal(modalEl, contentEl) {
+            modalOverlay.classList.remove('hidden');
+            modalEl.classList.remove('hidden');
+            // Small delay to allow CSS transitions to trigger
+            setTimeout(() => {
+                modalOverlay.classList.add('opacity-100');
+                contentEl.classList.remove('modal-enter');
+                contentEl.classList.add('modal-enter-active');
+            }, 10);
+        }
+
+        function closeModal(modalEl, contentEl) {
+            modalOverlay.classList.remove('opacity-100');
+            contentEl.classList.remove('modal-enter-active');
+            contentEl.classList.add('modal-exit-active');
+            
+            setTimeout(() => {
+                modalOverlay.classList.add('hidden');
+                modalEl.classList.add('hidden');
+                contentEl.classList.remove('modal-exit-active');
+                contentEl.classList.add('modal-enter');
+            }, 300); // Matches CSS transition duration
+        }
+
+        // Reset Flow
+        resetBtn.addEventListener('click', () => {
+            openModal(resetModal, resetModalContent);
+        });
+        cancelResetBtn.addEventListener('click', () => {
+            closeModal(resetModal, resetModalContent);
+        });
+        confirmResetBtn.addEventListener('click', () => {
+            phase = 'idle';
+            currentSet = 1;
+            timeElapsed = 0;
+            historyList = [];
+            manageTimer();
+            updateUI();
+            closeModal(resetModal, resetModalContent);
+        });
+
+        // Finish Flow
+        finishBtn.addEventListener('click', () => {
+            // Pause timer for summary
+            if (timerInterval) clearInterval(timerInterval);
+            
+            // If we hit finish while resting, log the final rest time
+            if (phase === 'resting' && historyList.length > 0) {
+                historyList[0].rest = timeElapsed;
+            } 
+            // If working, assume they finished the set right now
+            else if (phase === 'working') {
+                const repsValue = repsInput.value.trim();
+                const reps = repsValue !== '' ? parseInt(repsValue, 10) : null;
+                repsInput.value = '';
+                historyList.unshift({ set: currentSet, work: timeElapsed, rest: null, reps: reps });
+            }
+
+            const stats = calculateStats();
+            document.getElementById('summary-sets').textContent = historyList.length;
+            document.getElementById('summary-reps').textContent = stats.totalReps;
+            document.getElementById('summary-avg-work').textContent = formatTime(stats.avgWork);
+            document.getElementById('summary-avg-rest').textContent = formatTime(stats.avgRest);
+
+            openModal(summaryModal, summaryModalContent);
+        });
+
+        closeSummaryBtn.addEventListener('click', () => {
+            // User clicked "Start New Session" after finishing
+            phase = 'idle';
+            currentSet = 1;
+            timeElapsed = 0;
+            historyList = [];
+            manageTimer();
+            updateUI();
+            closeModal(summaryModal, summaryModalContent);
+        });
+
+        // --- Event Listeners ---
+        actionBtn.addEventListener('click', handleAction);
+
+        // Optional: Allow pressing 'Enter' inside the reps input to trigger action
+        repsInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAction();
+            }
+        });
+
+        // --- Initialization ---
+        updateUI(); // Initial render
+        lucide.createIcons(); // Initial icon load
+
+    </script>
+</body>
+</html>
