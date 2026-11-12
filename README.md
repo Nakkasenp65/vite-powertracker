@@ -1,42 +1,67 @@
-# sv
+# Power Tracker
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Power Tracker is a simple workout timer for tracking how long each set takes, how long you rest between sets, and how many repetitions you complete.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Start and time each workout set.
+- Record repetitions for every set (optional).
+- Automatically switch between work and rest timers with one click.
+- View the work time, rest time, and repetitions for each completed set.
+- See live averages for work time and rest time, plus total repetitions.
+- Delete an individual set or reset the entire session.
+- Finish a workout to view a summary of the session.
+- Restore the current session after refreshing the page.
+- Use keyboard shortcuts:
+  - `Space` - start, finish, or begin the next set
+  - `F` - finish the workout
+  - `R` - open the reset confirmation
 
-```sh
-# create a new project
-npx sv create my-app
+## How to use
+
+1. Select **Start Set 1** to begin the work timer.
+2. Enter the number of repetitions completed, if desired.
+3. Select **Finish & Rest** when the set is complete.
+4. Select **Start Set** when you are ready to begin the next set.
+5. Repeat until the workout is complete.
+6. Select **Finish Workout** to view the workout summary.
+
+The timer starts at zero for every work and rest phase. Your session data is saved in the browser's local storage, so it can be restored after a page refresh on the same device and browser.
+
+## Running locally
+
+### Prerequisites
+
+- Node.js
+- npm
+
+### Install dependencies
+
+```bash
+npm install
 ```
 
-To recreate this project with the same configuration:
+### Start the development server
 
-```sh
-# recreate this project
-npx sv@0.15.0 create --template minimal --types ts --add tailwindcss="plugins:none" sveltekit-adapter="adapter:vercel" --no-install .
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+Then open the local URL shown in the terminal.
 
-To create a production version of your app:
+### Available scripts
 
-```sh
-npm run build
-```
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run check` | Run Svelte and TypeScript checks |
+| `npm run build` | Create a production build |
+| `npm run preview` | Preview the production build locally |
 
-You can preview the production build with `npm run preview`.
+## Tech stack
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- [SvelteKit](https://kit.svelte.dev/)
+- [Svelte](https://svelte.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Lucide](https://lucide.dev/) icons
